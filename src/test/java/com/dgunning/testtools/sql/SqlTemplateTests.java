@@ -19,11 +19,19 @@ public class SqlTemplateTests {
 
 
     @Test
-    public void templateToSql(){
+    public void toSqlUsingMap(){
        SqlTemplate st = new SqlTemplate(TEST_SQL);
        String sql = st.getSql(new HashMap(){{put("id", "10");}});
        System.out.println(sql);
        assertTrue(sql.contains("(10,'ace','2017-01-01')"));
+    }
+
+    @Test
+    public void toSqlUsingColumnEqualsvaluePairs(){
+        SqlTemplate st = new SqlTemplate(TEST_SQL);
+        String sql = st.getSql("id=20", "name=LOLO");
+        System.out.println(sql);
+        assertTrue(sql.contains("(20,'LOLO','2017-01-01')"));
     }
 
     @Test

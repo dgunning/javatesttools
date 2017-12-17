@@ -1,5 +1,6 @@
 package com.dgunning.testtools.sql;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -10,9 +11,16 @@ import static java.util.stream.Collectors.toMap;
 
 
 /**
- * A template for a sql statement based on an insert sql
+ * A simple class that using templating to create SQL
+ * First you create a SqlTemplate insert template
  * <p>
- * This allows specific columns to be overridden
+ * StringTemplate st = new SqlTemplate("insert into RS.MYTABLE (id, name, trade_date) values (1, 'ace', '2017-01-01')");
+ * <p>
+ * Then you override it by passing in a map of values
+ * st.getSql(new HashMap(){{put("id", "10");}});
+ * <p>
+ * or "column=value" pairs
+ * st.getSql("id=20", "name=LOLO");
  */
 public class SqlTemplate {
 
@@ -38,16 +46,15 @@ public class SqlTemplate {
      * Parse the sql into a LinkedHashMap
      *
      * @param sql The sql to be parsed
-     * @return a LinkedHashMap with column=value entries
      */
     private void parseInsert(String sql) {
-        int colBraceStart = sql.indexOf("(", 0) + 1;
-        int colBraceEnd = sql.indexOf(")", colBraceStart);
-        String[] columns = sql.substring(colBraceStart, colBraceEnd).split(",");
+        int colParenthesisStart = sql.indexOf("(", 0) + 1;
+        int colParenthesisEnd = sql.indexOf(")", colParenthesisStart);
+        String[] columns = sql.substring(colParenthesisStart, colParenthesisEnd).split(",");
 
-        int valBraceStart = sql.indexOf("(", colBraceEnd) + 1;
-        int valBraceEnd = sql.indexOf(")", valBraceStart);
-        String[] values = sql.substring(valBraceStart, valBraceEnd).split(",");
+        int valParenthesisStart = sql.indexOf("(", colParenthesisEnd) + 1;
+        int valParenthesisEnd = sql.indexOf(")", valParenthesisStart);
+        String[] values = sql.substring(valParenthesisStart, valParenthesisEnd).split(",");
 
         this.sqlMap = IntStream.range(0, columns.length).boxed()
                 .collect(toMap(i -> columns[i].trim(),
@@ -55,7 +62,7 @@ public class SqlTemplate {
                         (e1, e2) -> e1,
                         LinkedHashMap::new));
 
-        this.tableName = sql.substring(0, colBraceStart).split(" ")[2].trim();
+        this.tableName = sql.substring(0, colParenthesisStart).split(" ")[2].trim();
     }
 
     /**
@@ -83,6 +90,18 @@ public class SqlTemplate {
         return TEMPLATE.replace("{TABLE}", this.tableName)
                 .replace("{COLUMNS}", String.join(",", sqlMap.keySet()))
                 .replace("{VALUES}", values);
+    }
+
+    /**
+     * getSql("column1=value", "column2=B")
+     *
+     * @param columnEqualValuePairs a string consisting of column=value
+     * @return the sql with the values replaced
+     */
+    public String getSql(String... columnEqualValuePairs) {
+        return getSql(Arrays.stream(columnEqualValuePairs)
+                .map(pair -> pair.split("="))
+                .collect(toMap(p -> p[0], p -> p[1])));
     }
 
     /**
